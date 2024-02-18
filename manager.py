@@ -4,7 +4,6 @@ from uagents.setup import fund_agent_if_low
 from rag_src.zephyr_rag import ZephyrRAG
 
 API_ENDPT = "http://localhost:3001"
-FRONT_END_ADDR = "agent1qvwqu6a0km09mq4f6j6kmke9smswmgcergmml9a54av9449rqtmmxy4qwe6"
 company = "Sand Hill Pharmaceuticals"
 
 import requests
@@ -152,7 +151,7 @@ class Client:
                 """).response
             print(fits_prompt)
             if 'yes' in fits_prompt.lower().split()[0]:
-                ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
+                ctx.logger.info(f"{ctx.name} matches criteria {msg.prompt}")
 
                 # refresh phone number cache
                 self.refresh_chat()
@@ -175,9 +174,8 @@ class Client:
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
                 await send_message(self.agent.storage.get("phone"), message)
-                await ctx.send(FRONT_END_ADDR, Message(message))
             else:
-                ctx.logger.info("Did not match prompt")
+                ctx.logger.info("Customer did not meet criteria")
             
     def refresh_chat(self):
         phone_number = self.agent.storage.get("phone")
