@@ -10,10 +10,6 @@ client.on('qr', (qr) => {
 
 client.on('ready', async () => {
     console.log('Client is ready!');
-    // const chats = await client.getChats();
-    // console.log(chats);
-    // client.getc
-
 });
 
 client.initialize();
@@ -21,6 +17,9 @@ client.initialize();
 //---------------------------------------
 
 const app = express();
+
+app.use(express.json()) // for parsing application/json
+app.use(express.urlencoded({ extended: true })) // for parsing application/x-www-form-urlencoded
 
 app.get('/phone-numbers', async (req, res) => {
     try {
@@ -35,8 +34,7 @@ app.get('/phone-numbers', async (req, res) => {
 app.get('/fetch-messages/:phoneNumber', async (req, res) => {
     const phoneNumber = req.params.phoneNumber;
     try {
-        const chats = await client.getChats();
-        const chat = chats.find(chat => chat.id.user === phoneNumber);
+        const chat = await client.getChatById(`${phoneNumber}@c.us`);
         if (chat) {
             const messages = await chat.fetchMessages();
             const messageBodies = messages.map(message => message.body);
@@ -46,6 +44,32 @@ app.get('/fetch-messages/:phoneNumber', async (req, res) => {
         }
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch messages' });
+    }
+});
+
+app.post('/send-message', async (req, res) => {
+    const phoneNumber = req.body.phoneNumber;
+    const message = req.body.message;
+    try {
+        const chat = await client.getChatById(`${phoneNumber}@c.us`);
+        if (chat) {
+            await chat.sendMessage(message);
+            res.json({ message: 'Message sent successfully' });
+        } else {
+            res.status(404).json({ error: 'Chat not found' });
+        }
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to send message' });
+    }
+});
+
+// For debugging purposes
+app.get('/chats', async (req, res) => {
+    try {
+        const chats = await client.getChats();
+        res.json(chats);
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch chats' });
     }
 });
 
