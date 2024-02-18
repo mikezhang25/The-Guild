@@ -4,7 +4,7 @@ from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, ServiceCon
 
 os.environ[
     "MONSTER_API_KEY"
-] = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IjRhNDhhNmNmN2U5N2I3MGYyMDM4ZDI2YTZiZWU4YmM3IiwiY3JlYXRlZF9hdCI6IjIwMjQtMDItMTdUMjI6MTM6MDUuMTM5MDIzIn0.tq_fsyfO3sYaF59ITAkinFvlzeHhvgfYynWL3VAot-0"
+] = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ1c2VybmFtZSI6IjJkZjA4NWRjZGQ0NDI3NWRkYzcwOWIxYThmNmViOGNlIiwiY3JlYXRlZF9hdCI6IjIwMjQtMDItMThUMTY6NTA6MTEuOTEzMjA5In0.HKx4c8HaLgvRCHApMCf72GMmSnsvivTo2J8uv3PeJNQ"
 
 """##Basic Usage Pattern
 Step 1: Set the model

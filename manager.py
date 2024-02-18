@@ -151,7 +151,6 @@ class Client:
 
                 """).response
             print(fits_prompt)
-            await ctx.send(FRONT_END_ADDR, Justification(fits_prompt))
             if 'yes' in fits_prompt.lower().split()[0]:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
 
