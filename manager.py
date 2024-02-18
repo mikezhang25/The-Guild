@@ -1,6 +1,8 @@
 from uagents import Agent, Bureau, Context, Model
 from rag_src.zephyr_rag import ZephyrRAG
 
+company = "Sand Hill Pharmaceuticals"
+
 class Manager:
     def __init__(self, bureau, data_path, clients) -> None:
         print(f"Initializing Manager")
@@ -28,7 +30,7 @@ class Manager:
                 # generate template
                 user_prompt = self.prompt_buffer[0]
                 self.prompt_buffer.pop(0)
-                user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from Mike: {user_prompt}").response
+                user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
                 #user_template = "boilerplate template"
                 print(f"Generated template: {user_template}")
                 # send combined prompt and prompt
@@ -61,8 +63,8 @@ class Client:
             fits_prompt = self.rag.query(f"Does {ctx.name} express the smallest possibility of matching the prompt {msg.prompt} given their chat history? Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. For all other cases, begin with \"yes\" and do not elaborate further.").response
             print(fits_prompt)
             if 'yes' in fits_prompt.lower():
-                ctx.logger.info(f"{ctx.name} received directive {msg.prompt} and template {msg.template}")
-                message = self.rag.query(f"Given the directive of {msg.prompt}, personalize this template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt: {msg.template}").response
+                ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
+                message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"").response
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
             else:
