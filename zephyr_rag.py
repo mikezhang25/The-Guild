@@ -67,24 +67,36 @@ class ZephyrRAG:
 
     def add_documents_to_index(self, data_to_index):
         documents = self.load_data(data_to_index=data_to_index)
-        self.update_index(documents=documents)
-        print("Updated documents")
+        if self.index is not None:
+            self.update_index(documents=documents)
+            print("Updated documents")
+        else:
+            self.create_index(documents=documents)
 
     def query(self, text):
-        response = self.query_engine.query(text)
+        if self.query_engine is not None:
+            response = self.query_engine.query(text)
+        else:
+            response = self.llm.complete(text)
         return response
 
     def start_rag(self):
         self.load_model()
         if self.init_data_path is not None:
+            print("No documents to load from")
             documents = self.load_data(data_to_index=self.init_data_path)
             self.create_index(documents=documents)
 
 
 # Example usage
-zephyr_rag = ZephyrRAG(model="zephyr-7b-beta", init_data_path="./data")
+zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
 
 zephyr_rag.start_rag()
 
-response = zephyr_rag.query("What does malignant mean?")
+response = zephyr_rag.query("what is cancer and its treatments")
+print(response)
+
+print("After adding RAG")
+zephyr_rag.add_documents_to_index(data_to_index="./data")
+response = zephyr_rag.query("what is cancer and its treatments")
 print(response)
