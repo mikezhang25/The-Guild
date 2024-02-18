@@ -4,7 +4,7 @@ from uagents.setup import fund_agent_if_low
 from rag_src.zephyr_rag import ZephyrRAG
 
 API_ENDPT = "http://localhost:3001"
-FRONT_END_ADDR = ""
+FRONT_END_ADDR = "agent1qvwqu6a0km09mq4f6j6kmke9smswmgcergmml9a54av9449rqtmmxy4qwe6"
 company = "Sand Hill Pharmaceuticals"
 
 import requests
@@ -43,7 +43,6 @@ def fetch_messages(phone_number):
 class Manager:
     def __init__(self, bureau, data_path, clients) -> None:
         print(f"Initializing Manager")
-        self.prompt_buffer = []
         self.agent = Agent(name="Manager", seed=f"manager recovery phrase")
         fund_agent_if_low(self.agent.wallet.address())
         self.bureau = bureau
@@ -65,13 +64,13 @@ class Manager:
         
         @self.agent.on_message(model=OnBoard)
         async def onboard_client(ctx: Context, sender: str, msg: OnBoard):
-            ctx.logger.info(f"Registering new client {msg.name} with number {msg.phone}")
-            client_data_path = f"{base_path}/data/clients/{msg.name}"
+            ctx.logger.info(f"Registering new client with number {msg.phone}")
+            client_data_path = f"{base_path}/data/clients/{msg.phone}"
             if not os.path.exists(client_data_path):
                 os.makedirs(client_data_path)
-                with open(f"{client_data_path}/chat.txt", "w") as chat_file:
+                with open(os.path.join(client_data_path, "chat.txt"), "w") as chat_file:
                     chat_file.write("")
-            newClient = Client(msg.name, msg.phone, self.bureau, client_data_path)
+            newClient = Client(msg.phone, msg.phone, self.bureau, client_data_path)
             self.clients.append(newClient)
             send_message(msg.number, newClient.rag.query(f"Craft a two-sentence welcome text for our new client {msg.name}. They were onboarded because of {msg.context}. \n\nWelcome, {msg.name}! "))
         
@@ -100,6 +99,7 @@ class Client:
         print(f"Initializing {name}")
         self.agent = Agent(name=name, seed=f"{name} recovery phrase")
         self.agent.storage.set("phone", phone)
+        fund_agent_if_low(self.agent.wallet.address())
         bureau.add(self.agent)
         self.rag = ZephyrRAG(
             model="zephyr-7b-beta",
@@ -109,6 +109,7 @@ class Client:
             init_data_path=chat_path
             )
         self.rag.start_rag()
+        self.refresh_chat()
         @self.agent.on_message(model=Message)
         async def message_handler(ctx: Context, sender: str, msg: Message):
             ctx.logger.info(f"{ctx.name} received message: {msg.message}")
@@ -116,20 +117,13 @@ class Client:
         @self.agent.on_message(model=Directive)
         async def directive_handler(ctx: Context, sender: str, msg: Directive):
             # TODO: call API to refresh chat history in data/[name]
-            fits_prompt = self.rag.query(f"Evaluate whether {ctx.name} strictly satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. For all other cases, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because").response
+            fits_prompt = self.rag.query(f"Evaluate whether this user strictly satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. If yes, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because").response
             print(fits_prompt)
             if 'yes' in fits_prompt.lower().split()[0]:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
 
                 # refresh phone number cache
-                phone_number = self.agent.storage.get("phone")
-                new_messages = fetch_messages(phone_number)
-                print(type(new_messages))
-                chat_path = f"./data/clients/{ctx.name}/chat.txt"
-                with open(chat_path, "w") as chat_file:
-                    for message in new_messages:
-                        chat_file.write(f"{message}\n")
-                print("Refreshed chat history")
+                self.refresh_chat()
 
                 message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"\nDear {ctx.name}").response
                 # TODO: send out using WhatsApp
@@ -138,6 +132,15 @@ class Client:
             else:
                 ctx.logger.info("Did not match prompt")
             
+    def refresh_chat(self):
+        phone_number = self.agent.storage.get("phone")
+        new_messages = fetch_messages(phone_number)
+        chat_path = f"./data/clients/{self.agent.name}/chat.txt"
+        with open(chat_path, "w") as chat_file:
+            for message in new_messages:
+                chat_file.write(f"{message}\n")
+        print("Refreshed chat history")
+
 class Directive(Model):
     template: str
     prompt: str
@@ -161,15 +164,15 @@ class Application:
         self.manager = Manager(self.bureau, f"{base_path}/data/business", self.clients)
     
     def load_clients(self):
-        import csv
-        client_info = []
-        with open(f"{base_path}/clients.csv", mode='r') as csv_file:
-            csv_reader = csv.reader(csv_file)
-            for row in csv_reader:
-                client_info.append((row[0], int(row[1])))
-        
-        for name, phone in client_info:
-            self.clients.append(Client(name, phone, self.bureau, f"{base_path}/data/clients/{name}"))
+        client_numbers = fetch_phone_numbers()        
+        for phone in client_numbers:
+            print(f"Returning user {phone}")
+            client_data_path = f"{base_path}/data/clients/{phone}"
+            if not os.path.exists(client_data_path):
+                os.makedirs(client_data_path)
+                with open(os.path.join(client_data_path, "chat.txt"), "w") as chat_file:
+                    chat_file.write("")  # Create an empty chat.txt file
+            self.clients.append(Client(str(phone), phone, self.bureau, client_data_path))
 
     def run(self):
         print(self.manager.agent.address)
