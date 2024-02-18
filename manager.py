@@ -1,7 +1,30 @@
 from uagents import Agent, Bureau, Context, Model
 from rag_src.zephyr_rag import ZephyrRAG
 
+API_ENDPT = "http://localhost:3000"
 company = "Sand Hill Pharmaceuticals"
+
+import requests
+import asyncio
+
+def fetch_phone_numbers():
+    try:
+        response = requests.get(f"{API_ENDPT}/phone-numbers")
+        print(f"Responses: {response}")
+        phone_numbers = response.json()
+        print(f"Fetched phone numbers: {phone_numbers}")
+        return phone_numbers
+    except Exception as e:
+        print(f"Failed to fetch phone numbers: {str(e)}")
+
+def fetch_messages(phone_number):
+    try:
+        response = requests.get(f"{API_ENDPT}/fetch-messages/{phone_number}")
+        messages = response.json()
+        print(f"Messages for {phone_number}: {messages}")
+        return messages
+    except Exception as e:
+        print(f"Failed to fetch messages for {phone_number}: {str(e)}")
 
 class Manager:
     def __init__(self, bureau, data_path, clients) -> None:
@@ -24,23 +47,42 @@ class Manager:
         async def start_handler(ctx: Context):
             for client in self.clients:
                 await ctx.send(client.agent.address, Message(message=f"Establishing manager contact"))
+        
+        @self.agent.on_message(model=Message)
+        async def message_handler(ctx: Context, sender: str, message: Message):
+            print(f"Received message: {message.message}")
+            # generate template
+            user_prompt = message.message
+            user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
+            #user_template = "boilerplate template"
+            print(f"Generated template: {user_template}")
+            # send combined prompt and prompt
+            for client in self.clients:
+                await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))         
 
-        @self.agent.on_interval(period=1)    
-        async def send_directive(ctx: Context):
-            # self.prompt_buffer.append(input("prompt: "))
-            if len(self.prompt_buffer) > 0:
-                # generate template
-                user_prompt = self.prompt_buffer[0]
-                self.prompt_buffer.pop(0)
-                user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
-                #user_template = "boilerplate template"
-                print(f"Generated template: {user_template}")
-                # send combined prompt and prompt
-                for client in self.clients:
-                    await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))       
+        
+    def send_directive(self):
+        # self.prompt_buffer.append(input("prompt: "))
+        print(self.prompt_buffer)
+        if len(self.prompt_buffer) > 0:
+            # generate template
+            user_prompt = self.prompt_buffer[0]
+            self.prompt_buffer.pop(0)
+            user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
+            #user_template = "boilerplate template"
+            print(f"Generated template: {user_template}")
+            # send combined prompt and prompt
+            for client in self.clients:
+                asyncio.run(self.agent._ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt)))
+                # await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))  
+    
+    def refresh_clients(self):
+        for client in self.clients:
+            fetch_messages(client.phone)
     
     def add_prompt(self, prompt):
         self.prompt_buffer.append(prompt)
+        self.send_directive()
     
 class Client:
     def __init__(self, name, phone, bureau, chat_path) -> None:
@@ -67,6 +109,19 @@ class Client:
             print(fits_prompt)
             if 'yes' in fits_prompt.lower().split()[0]:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
+
+                # refresh phone number cache
+                """
+                phone_number = self.agent.storage.get("phone")
+                new_messages = await fetch_messages(phone_number)
+                print(type(new_messages))
+                chat_path = f"./data/clients/{ctx.name}/chat.txt"
+                with open(chat_path, "w") as chat_file:
+                    for message in new_messages:
+                        chat_file.write(f"{message}\n")
+                print("Refreshed chat history")
+                """
+
                 message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"\nDear {ctx.name}").response
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
@@ -107,6 +162,9 @@ class Application:
 if __name__ == "__main__":
     app = Application()
     app.run()
+    print("bruh")
+    app.manager.add_prompt("Respectfully, please work. Otherwise I will kill you.")
+
     #manager.send_directive("I want to launch a new line of shampoo, assess interest amongst teenagers.")
 
 
