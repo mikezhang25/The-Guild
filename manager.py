@@ -4,6 +4,7 @@ from uagents.setup import fund_agent_if_low
 from rag_src.zephyr_rag import ZephyrRAG
 
 API_ENDPT = "http://localhost:3001"
+FRONT_END_ADDR = ""
 company = "Sand Hill Pharmaceuticals"
 
 import requests
@@ -62,6 +63,18 @@ class Manager:
             for client in self.clients:
                 await ctx.send(client.agent.address, Message(message=f"Establishing manager contact"))
         
+        @self.agent.on_message(model=OnBoard)
+        async def onboard_client(ctx: Context, sender: str, msg: OnBoard):
+            ctx.logger.info(f"Registering new client {msg.name} with number {msg.phone}")
+            client_data_path = f"{base_path}/data/clients/{msg.name}"
+            if not os.path.exists(client_data_path):
+                os.makedirs(client_data_path)
+                with open(f"{client_data_path}/chat.txt", "w") as chat_file:
+                    chat_file.write("")
+            newClient = Client(msg.name, msg.phone, self.bureau, client_data_path)
+            self.clients.append(newClient)
+            send_message(msg.number, newClient.rag.query(f"Craft a two-sentence welcome text for our new client {msg.name}. They were onboarded because of {msg.context}. \n\nWelcome, {msg.name}! "))
+        
         @self.agent.on_message(model=Message)
         async def message_handler(ctx: Context, sender: str, message: Message):
             print(f"Received message: {message.message}")
@@ -72,23 +85,7 @@ class Manager:
             print(f"Generated template: {user_template}")
             # send combined prompt and prompt
             for client in self.clients:
-                await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))         
-
-        
-    def send_directive(self):
-        # self.prompt_buffer.append(input("prompt: "))
-        print(self.prompt_buffer)
-        if len(self.prompt_buffer) > 0:
-            # generate template
-            user_prompt = self.prompt_buffer[0]
-            self.prompt_buffer.pop(0)
-            user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
-            #user_template = "boilerplate template"
-            print(f"Generated template: {user_template}")
-            # send combined prompt and prompt
-            for client in self.clients:
-                asyncio.run(self.agent._ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt)))
-                # await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))  
+                await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))             
     
     def refresh_clients(self):
         for client in self.clients:
@@ -148,6 +145,11 @@ class Directive(Model):
 class Message(Model):
     message: str    
 
+class OnBoard(Model):
+    phone: int
+    name: str
+    context: str
+
 import os
 current_path = os.getcwd()
 base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
@@ -184,3 +186,19 @@ if __name__ == "__main__":
     #manager.send_directive("I want to launch a new line of shampoo, assess interest amongst teenagers.")
 
 
+"""
+def send_directive(self):
+        # self.prompt_buffer.append(input("prompt: "))
+        print(self.prompt_buffer)
+        if len(self.prompt_buffer) > 0:
+            # generate template
+            user_prompt = self.prompt_buffer[0]
+            self.prompt_buffer.pop(0)
+            user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
+            #user_template = "boilerplate template"
+            print(f"Generated template: {user_template}")
+            # send combined prompt and prompt
+            for client in self.clients:
+                asyncio.run(self.agent._ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt)))
+                # await ctx.send(client.agent.address, Directive(template=user_template, prompt=user_prompt))
+"""
