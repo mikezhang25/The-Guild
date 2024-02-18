@@ -139,6 +139,9 @@ class Client:
                 1) The business owner makes a request to advertise dog food and you allow (YES) this request because the chat history of your customer indicates the customer has a dog.
                 2) The business owner makes a request to advertise a new lotion and you deny (NO) this request because the chat history of your customer indicates they already bought the item.
                 3) The business owner makes a request to update all his customers about his hours for the long weekend and you allow (YES) this request because the chat history of your customer indicates they have shopped at that business before.
+                                         
+                As you can see you are pretty liberal in allowing business owners to contact your customers. Therefore you reply YES many times.
+                You only reply NO if there is absolutely no relation of the request to the realm of possibility of what your customer would be interested in.
                 
                 Now, the business owner makes a request:
                 {msg.prompt}
