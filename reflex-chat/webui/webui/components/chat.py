@@ -46,18 +46,7 @@ def message(qa: QA) -> rx.Component:
 
 def chat() -> rx.Component:
     """List all the messages in a single conversation."""
-    # return rx.chakra.vstack(
-    #     rx.chakra.box(rx.foreach(State.chats[State.current_chat], message)),
-    #     py="8",
-    #     flex="1",
-    #     width="100%",
-    #     max_w="3xl",
-    #     padding_x="4",
-    #     align_self="center",
-    #     overflow="hidden",
-    #     padding_bottom="5em",)
-    return rx.hstack(
-    rx.chakra.vstack(
+    return rx.chakra.vstack(
         rx.chakra.box(rx.foreach(State.chats[State.current_chat], message)),
         py="8",
         flex="1",
@@ -66,18 +55,8 @@ def chat() -> rx.Component:
         padding_x="4",
         align_self="center",
         overflow="hidden",
-        padding_bottom="5em"),
-    rx.container(
-        rx.card(
-            explainbar(),
-            width="100%",
-        ),
-        size="2",
-        align_self="center",
-    ),
-    width="100%",
-    height="100%",
-)
+        padding_bottom="5em",)
+
 
 
 def action_bar() -> rx.Component:

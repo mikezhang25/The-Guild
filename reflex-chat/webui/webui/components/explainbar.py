@@ -17,11 +17,13 @@ def explainbar() -> rx.Component:
         direction="column",
         spacing="4",
     ),
+    align_self="center",
     type="always",
     scrollbars="vertical",
     style={"height": 90},
     placement="right",
     position="right",
+    width="50%"
 )
     # return rx.chakra.drawer(
     #     rx.chakra.drawer_content(
