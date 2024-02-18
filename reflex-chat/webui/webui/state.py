@@ -11,6 +11,8 @@ base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 sys.path.append(base_path)
 
 from manager import Application
+from manager import Message
+from manager import OnBoard
 from rag_src.zephyr_rag import ZephyrRAG
 # intialize manager
 # manager.run()
@@ -18,8 +20,15 @@ from rag_src.zephyr_rag import ZephyrRAG
 from uagents import Agent, Context, Model
 from uagents.setup import fund_agent_if_low
  
-class Message(Model):
-    message: str
+import re
+
+def is_ten_numbers(s):
+    # Define a regular expression pattern to match exactly 10 digits
+    pattern = r'^\d{10}$'
+    
+    # Use the re.match() function to search for the pattern at the beginning of the string
+    # If the pattern matches, return True; otherwise, return False
+    return bool(re.match(pattern, s))
  
 RECIPIENT_ADDRESS="agent1qfjcg2h5c2d2qkzksc8wntkpcyflntz0w8lsh2q6nwqpe6a2dn5ps88aqq3"
  
@@ -39,6 +48,8 @@ async def send_message(ctx: Context):
 @sigmar.on_message(model=Message)
 async def message_handler(ctx: Context, sender: str, msg: Message):
     ctx.logger.info(f"Received message from {sender}: {msg.message}")
+
+print(sigmar.address)
  
 
 zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
@@ -165,7 +176,21 @@ class State(rx.State):
 
         # Remove the last mock answer.
         messages = messages[:-1]
-        await sigmar._ctx.send(RECIPIENT_ADDRESS, Message(message = messages[-1]["content"]))
+        message_content = messages[-1]["content"]
+        # reach out to a new customer if we have key word new customer
+        if "new customer" in message_content.lower():
+            import re
+
+            # Define a regular expression pattern to match exactly 10 digits
+            pattern = r'\b\d{10}\b'
+            
+            # Use the re.search() function to find the pattern in the message content
+            match = re.search(pattern, message_content)
+            
+            phone_number = match.group()
+            await sigmar._ctx.send(RECIPIENT_ADDRESS, OnBoard(phone=phone_number, context=f"{message_content}"))
+        else:
+            await sigmar._ctx.send(RECIPIENT_ADDRESS, Message(message = message_content))
         # response = zephyr_rag.query(messages[-1]["content"])
         # Stream the results, yielding after every word.
 

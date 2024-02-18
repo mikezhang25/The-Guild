@@ -147,7 +147,6 @@ class Message(Model):
 
 class OnBoard(Model):
     phone: int
-    name: str
     context: str
 
 import os
