@@ -27,7 +27,7 @@ class Manager:
 
         @self.agent.on_interval(period=1)    
         async def send_directive(ctx: Context):
-            self.prompt_buffer.append(input("prompt: "))
+            # self.prompt_buffer.append(input("prompt: "))
             if len(self.prompt_buffer) > 0:
                 # generate template
                 user_prompt = self.prompt_buffer[0]
@@ -80,23 +80,26 @@ class Directive(Model):
 class Message(Model):
     message: str    
 
+import os
+current_path = os.getcwd()
+base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 class Application:
     def __init__(self):
         self.bureau = Bureau()
         self.clients = []
         self.load_clients()
-        self.manager = Manager(self.bureau, "./data/business", self.clients)
+        self.manager = Manager(self.bureau, f"{base_path}/data/business", self.clients)
     
     def load_clients(self):
         import csv
         client_info = []
-        with open("clients.csv", mode='r') as csv_file:
+        with open(f"{base_path}/clients.csv", mode='r') as csv_file:
             csv_reader = csv.reader(csv_file)
             for row in csv_reader:
                 client_info.append((row[0], int(row[1])))
         
         for name, phone in client_info:
-            self.clients.append(Client(name, phone, self.bureau, f"./data/clients/{name}"))
+            self.clients.append(Client(name, phone, self.bureau, f"{base_path}/data/clients/{name}"))
 
     def run(self):
         self.bureau.run()
