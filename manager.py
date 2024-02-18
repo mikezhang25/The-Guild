@@ -1,4 +1,6 @@
 from uagents import Agent, Bureau, Context, Model
+from uagents.setup import fund_agent_if_low
+
 from rag_src.zephyr_rag import ZephyrRAG
 
 API_ENDPT = "http://localhost:3000"
@@ -31,6 +33,7 @@ class Manager:
         print(f"Initializing Manager")
         self.prompt_buffer = []
         self.agent = Agent(name="Manager", seed=f"manager recovery phrase")
+        fund_agent_if_low(self.agent.wallet.address())
         self.bureau = bureau
         self.rag = ZephyrRAG(
             model="zephyr-7b-beta",
@@ -111,16 +114,14 @@ class Client:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
 
                 # refresh phone number cache
-                """
                 phone_number = self.agent.storage.get("phone")
-                new_messages = await fetch_messages(phone_number)
+                new_messages = fetch_messages(phone_number)
                 print(type(new_messages))
                 chat_path = f"./data/clients/{ctx.name}/chat.txt"
                 with open(chat_path, "w") as chat_file:
                     for message in new_messages:
                         chat_file.write(f"{message}\n")
                 print("Refreshed chat history")
-                """
 
                 message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"\nDear {ctx.name}").response
                 # TODO: send out using WhatsApp
@@ -140,7 +141,8 @@ current_path = os.getcwd()
 base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 class Application:
     def __init__(self):
-        self.bureau = Bureau()
+        self.bureau = Bureau(port=8000, endpoint=["http://0.0.0.0:8000/submit"])
+        
         self.clients = []
         self.load_clients()
         self.manager = Manager(self.bureau, f"{base_path}/data/business", self.clients)
@@ -157,6 +159,8 @@ class Application:
             self.clients.append(Client(name, phone, self.bureau, f"{base_path}/data/clients/{name}"))
 
     def run(self):
+        print(self.manager.agent.address)
+        # self.manager.add_prompt("Fix this problem please")
         self.bureau.run()
 
 if __name__ == "__main__":
