@@ -15,45 +15,52 @@ Step 4: Create embedding store and create index
 
 Step 5: LLM Output with RAG
 """
+class ZephyrRAG:
+    def __init__(self, model, temperature, context_window, embed_model, data_path):
+        self.model = model
+        self.temperature = temperature
+        self.context_window = context_window
+        self.embed_model = embed_model
+        self.data_path = data_path
+        self.llm = None
+        self.service_context = None
+        self.documents = None
+        self.query_engine = None
 
-#Step 1
-model = "zephyr-7b-beta"
+    def load_model(self):
+        print("Loading model")
+        self.llm = MonsterLLM(model=self.model, temperature=self.temperature, context_window=self.context_window)
+        self.service_context = ServiceContext.from_defaults(
+            chunk_size=1024, llm=self.llm, embed_model=self.embed_model
+        )
 
-#Step 2
-print("Loading model")
-llm = MonsterLLM(model=model, temperature=0.75, context_window=1024)
-service_context = ServiceContext.from_defaults(
-    chunk_size=1024, llm=llm, embed_model="local:BAAI/bge-small-en-v1.5"
+    def load_data(self):
+        print("Loading data")
+        self.documents = SimpleDirectoryReader(self.data_path).load_data()
+
+    def create_index(self):
+        index = VectorStoreIndex.from_documents(
+            self.documents, service_context=self.service_context
+        )
+        self.query_engine = index.as_query_engine()
+
+    def query(self, text):
+        response = self.query_engine.query(text)
+        return response
+
+    def run(self):
+        self.load_model()
+        self.load_data()
+        self.create_index()
+
+# Example usage
+zephyr_rag = ZephyrRAG(
+    model="zephyr-7b-beta",
+    temperature=0.75,
+    context_window=1024,
+    embed_model="local:BAAI/bge-small-en-v1.5",
+    data_path="./data"
 )
-
-#Step 3
-print("Loading data")
-documents = SimpleDirectoryReader("./data").load_data()
-
-#Step 4
-index = VectorStoreIndex.from_documents(
-    documents, service_context=service_context
-)
-query_engine = index.as_query_engine()
-
-#Step 5
-response = query_engine.query("What does malignant mean?")
+zephyr_rag.run()
+response = zephyr_rag.query("What does malignant mean?")
 print(response)
-
-from monsterapi import client
-
-monster_client = client(os.environ["MONSTER_API_KEY"])
-model = 'llama2-7b-chat';
-input_data = {
-  'prompt': 'Whats the meaning of life?',
-  'top_k': 10,
-  'top_p': 0.9,
-  'temp': 0.9,
-  'max_length': 1000,
-  'beam_size': 1,
-  'system_prompt': 'You are a helpful, respectful and honest assistant. Always answer as helpfully as possible, while being safe...',
-  'repetition_penalty': 1.2,
-};
-result = monster_client.generate(model, input_data)
-
-print(result['text'])
