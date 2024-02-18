@@ -9,7 +9,12 @@ current_path = os.getcwd()
 base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 sys.path.append(base_path)
 
+from manager import Application
 from rag_src.zephyr_rag import ZephyrRAG
+# intialize manager
+manager = Application()
+# manager.run()
+
 
 zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
 zephyr_rag.start_rag()
@@ -52,11 +57,15 @@ class State(rx.State):
     # Whether the modal is open.
     modal_open: bool = False
 
+    def initialize_manager(self):
+        manager.run()
+
     def create_chat(self):
         """Create a new chat."""
         # Add the new chat to the list of chats.
         self.current_chat = self.new_chat_name
         self.chats[self.new_chat_name] = []
+        self.manager = self.initialize_manager()
 
         # Toggle the modal.
         self.modal_open = False
@@ -132,20 +141,21 @@ class State(rx.State):
         # Remove the last mock answer.
         messages = messages[:-1]
 
-        response = zephyr_rag.query(messages[-1]["content"])
+        manager.manager.add_prompt(prompt = messages[-1]["content"])
+        # response = zephyr_rag.query(messages[-1]["content"])
         # Stream the results, yielding after every word.
 
         import requests
 
         url = "https://www.dummy.me"
 
-        for item in response:
-            if item[0] == "text":
-                answer_text = item[1]
-                json_request = {"content": answer_text}
-                # post_request = requests.post(url, json = json_request)
-                self.chats[self.current_chat][-1].answer += "Generating responses..."
-                yield
+        # for item in response:
+        #     if item[0] == "text":
+        #         answer_text = item[1]
+        #         json_request = {"content": answer_text}
+        #         # post_request = requests.post(url, json = json_request)
+        #         self.chats[self.current_chat][-1].answer += "Generating responses..."
+        #         yield
         text_responses = ["Fulfilling request..."]
         for text in text_responses:
             # self.chats[self.current_chat][-1].answer += text
