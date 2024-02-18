@@ -119,6 +119,7 @@ class Client:
             # TODO: call API to refresh chat history in data/[name]
             fits_prompt = self.rag.query(f"Evaluate whether this user strictly satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. If yes, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because").response
             print(fits_prompt)
+            await ctx.send(FRONT_END_ADDR, Justification(fits_prompt))
             if 'yes' in fits_prompt.lower().split()[0]:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
 
@@ -129,6 +130,7 @@ class Client:
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
                 await send_message(self.agent.storage.get("phone"), message)
+                await ctx.send(FRONT_END_ADDR, Message(message))
             else:
                 ctx.logger.info("Did not match prompt")
             
@@ -146,7 +148,10 @@ class Directive(Model):
     prompt: str
 
 class Message(Model):
-    message: str    
+    message: str
+
+class Justification(Model):
+    message: str
 
 class OnBoard(Model):
     phone: int
