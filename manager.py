@@ -73,8 +73,11 @@ class Manager:
             newClient = Client(msg.phone, msg.phone, self.bureau, client_data_path)
             self.clients.append(newClient)
             send_message(msg.number, newClient.rag.query(f"""
-                Craft a two-sentence welcome text for our new client {msg.name}. 
-                They were onboarded because of {msg.context}. \n\nWelcome, {msg.name}!
+                You are the owner of a business. There is a new client. Here's some context:
+                !START OF CONTEXT! {msg.context} !END OF CONTEXT!
+
+                You must craft a two-sentence welcome text, that embodies at least one key idea from the context.
+                Remember, your output must STRICTLY BE TWO SENTENCES! Begin your output with "Welcome".
             """))
         
         @self.agent.on_message(model=Message)
@@ -83,9 +86,11 @@ class Manager:
             # generate template
             user_prompt = message.message
             user_template = self.rag.query(f"""
-                Generate a general customer outreach template for the following prompt from {company}.
+                Generate a general template for a response to a customer based on the following instructions from {company}.
                 
-                Prompt: \"\"\"{user_prompt}\"\"\"
+                Instructions: \"\"\"{user_prompt}\"\"\"
+
+                Your response is a text message, so the template should be worded in that manner.
                 """).response
             #user_template = "boilerplate template"
             print(f"Generated template: {user_template}")
@@ -125,11 +130,22 @@ class Client:
         async def directive_handler(ctx: Context, sender: str, msg: Directive):
             # TODO: call API to refresh chat history in data/[name]
             fits_prompt = self.rag.query(f"""
-                Evaluate whether this user strictly satisfies the prompt {msg.prompt} given their chat history. 
-                Please begin your answer with exactly a yes or no. 
-                If no, please provide 1 sentence explaining why. 
-                If yes, begin with "yes" and 1 sentence explaining your decision.
-                \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because
+                You are the representative for a customer.
+                As a representative, your job is to filter out requests to contact your customer from business owners.
+                In order to filter the requests, you use the chat history of the customer to decide if they would be interested in the request of the business owner.
+                In your output, you strictly write a ONE SENTENCE explanation of why you arrived at that conclusion, that starts with either a "YES" or a "NO".
+                
+                Here are 3 examples:
+                1) The business owner makes a request to advertise dog food and you allow (YES) this request because the chat history of your customer indicates the customer has a dog.
+                2) The business owner makes a request to advertise a new lotion and you deny (NO) this request because the chat history of your customer indicates they already bought the item.
+                3) The business owner makes a request to update all his customers about his hours for the long weekend and you allow (YES) this request because the chat history of your customer indicates they have shopped at that business before.
+                
+                Now, the business owner makes a request:
+                {msg.prompt}
+                
+                How would you filter this request? Remember, your ONE SENTENCE output explanation should strictly start with a YES or NO.
+                
+
                 """).response
             print(fits_prompt)
             await ctx.send(FRONT_END_ADDR, Justification(fits_prompt))
@@ -140,13 +156,19 @@ class Client:
                 self.refresh_chat()
 
                 message = self.rag.query(f"""
-                    Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. 
+                    You are a senior customer relationship manager at {company} and your are customer focused.
+                    Your job is to write text messages to customers.
+                    All you know about the customer is their chat history, so you ALWAYS connect your response with the chat history.
+                    You are given a prompt and template for the text message from your boss. 
+                    Given the following prompt, PERSONALIZE the template message according to the chat history.
+                    Some strategies you use are mentioning conversational details and appealing to their interests. 
                     At all costs, do not mention details that were not provided verbatim in the prompt. 
-                    Embody a senior customer relationship manager at {company} who is deeply devoted to its success. 
                     
-                    Prompt: \"\"\" {msg.prompt} \"\"\"
-                    Template: \"\"\" {msg.template} \"\"\"
-                    Dear {ctx.name}
+                    Here is the Prompt: \"\"\" {msg.prompt} \"\"\"
+                    Here is the Template: \"\"\" {msg.template} \"\"\"
+
+                    Remember, your text message should read well and BE DIRECTED TO THE CUSTOMER.
+                    Generate your text message response.
                 """).response
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
