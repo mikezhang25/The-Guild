@@ -86,11 +86,11 @@ class Manager:
             # generate template
             user_prompt = message.message
             user_template = self.rag.query(f"""
-                Generate a general template for a response to a customer based on the following instructions from {company}.
+                Generate a general response to a customer based on the following instructions from {company}.
                 
                 Instructions: \"\"\"{user_prompt}\"\"\"
 
-                Your response is a text message, so the template should be worded in that manner.
+                Your response is a text message, it should be worded in that manner.
                 """).response
             #user_template = "boilerplate template"
             print(f"Generated template: {user_template}")
