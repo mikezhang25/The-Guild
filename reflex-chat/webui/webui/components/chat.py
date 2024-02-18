@@ -5,7 +5,9 @@ from webui.components import loading_icon
 from webui.state import QA, State
 
 
+
 def message(qa: QA) -> rx.Component:
+    
     """A single question/answer message.
 
     Args:
@@ -14,27 +16,30 @@ def message(qa: QA) -> rx.Component:
     Returns:
         A component displaying the question/answer pair.
     """
+    question_box = rx.chakra.box(
+        rx.chakra.text(
+            qa.question,
+            bg=styles.border_color,
+            shadow=styles.shadow_light,
+            **styles.message_style,
+        ),
+        text_align="right",
+        margin_top="1em",
+    )
+
+    answer_box = rx.chakra.box(
+        rx.chakra.text(
+            qa.answer,
+            bg=styles.accent_color,
+            shadow=styles.shadow_light,
+            **styles.message_style,
+        ),
+        text_align="left",
+        padding_top="1em",
+    )
+
     return rx.chakra.box(
-        rx.chakra.box(
-            rx.chakra.text(
-                qa.question,
-                bg=styles.border_color,
-                shadow=styles.shadow_light,
-                **styles.message_style,
-            ),
-            text_align="right",
-            margin_top="1em",
-        ),
-        rx.chakra.box(
-            rx.chakra.text(
-                qa.answer,
-                bg=styles.accent_color,
-                shadow=styles.shadow_light,
-                **styles.message_style,
-            ),
-            text_align="left",
-            padding_top="1em",
-        ),
+        rx.cond(qa.answer_only, answer_box, rx.chakra.box(question_box, answer_box)),
         width="100%",
     )
 
@@ -84,12 +89,6 @@ def action_bar() -> rx.Component:
                 on_submit=State.process_question,
                 reset_on_submit=True,
                 width="100%",
-            ),
-            rx.chakra.text(
-                "ReflexGPT may return factually incorrect or misleading responses. Use discretion.",
-                font_size="xs",
-                color="#fff6",
-                text_align="center",
             ),
             width="100%",
             max_w="3xl",

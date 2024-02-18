@@ -4,8 +4,9 @@ import json
 import openai
 import reflex as rx
 import sys
+
 current_path = os.getcwd()
-base_path = current_path.split('TreeHacks2024')[0] + 'TreeHacks2024'
+base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 sys.path.append(base_path)
 
 from rag_src.zephyr_rag import ZephyrRAG
@@ -13,11 +14,13 @@ from rag_src.zephyr_rag import ZephyrRAG
 zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
 zephyr_rag.start_rag()
 
+
 class QA(rx.Base):
     """A question and answer pair."""
 
     question: str
     answer: str
+    answer_only: bool = False
 
 
 DEFAULT_CHATS = {
@@ -102,7 +105,7 @@ class State(rx.State):
 
         async for value in self.process_question_model(question):
             yield value
-    
+
     async def process_question_model(self, question: str):
         """Get the response from the API.
 
@@ -131,12 +134,24 @@ class State(rx.State):
 
         response = zephyr_rag.query(messages[-1]["content"])
         # Stream the results, yielding after every word.
+
+        import requests
+
+        url = "https://www.dummy.me"
+
         for item in response:
             if item[0] == "text":
                 answer_text = item[1]
-                self.chats[self.current_chat][-1].answer += answer_text
-                self.chats = self.chats
+                json_request = {"content": answer_text}
+                # post_request = requests.post(url, json = json_request)
+                self.chats[self.current_chat][-1].answer += "Generating responses..."
                 yield
+        text_responses = ["Fulfilling request..."]
+        for text in text_responses:
+            # self.chats[self.current_chat][-1].answer += text
+            response_qa = QA(question="", answer=text)
+            response_qa.answer_only = True
+            self.chats[self.current_chat].append(response_qa)
 
         # Toggle the processing flag.
         self.processing = False
