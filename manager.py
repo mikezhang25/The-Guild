@@ -133,7 +133,7 @@ class Client:
                 You are the representative for a customer.
                 As a representative, your job is to filter out requests to contact your customer from business owners.
                 In order to filter the requests, you use the chat history of the customer to decide if they would be interested in the request of the business owner.
-                In your output, you strictly start with either a "YES" or a "NO" followed by a ONE SENTENCE explanation of why you arrived at that conclusion.
+                In your output, you strictly write a ONE SENTENCE explanation of why you arrived at that conclusion, that starts with either a "YES" or a "NO".
                 
                 Here are 3 examples:
                 1) The business owner makes a request to advertise dog food and you allow (YES) this request because the chat history of your customer indicates the customer has a dog.
@@ -143,7 +143,7 @@ class Client:
                 Now, the business owner makes a request:
                 {msg.prompt}
                 
-                How would you filter this request? Remember, your output should strictly start with a YES or NO, followed by a ONE SENTENCE explanation.
+                How would you filter this request? Remember, your ONE SENTENCE output explanation should strictly start with a YES or NO.
                 
 
                 """).response
