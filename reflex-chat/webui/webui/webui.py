@@ -3,7 +3,7 @@
 import reflex as rx
 
 from webui import styles
-from webui.components import chat, modal, navbar, sidebar
+from webui.components import chat, modal, navbar, sidebar, explainbar
 from webui.state import State
 
 
@@ -13,7 +13,7 @@ def index() -> rx.Component:
         navbar(),
         chat.chat(),
         chat.action_bar(),
-        sidebar(),
+        # explainbar(),
         modal(),
         bg=styles.bg_dark_color,
         color=styles.text_light_color,

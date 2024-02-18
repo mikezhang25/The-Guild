@@ -13,6 +13,7 @@ sys.path.append(base_path)
 from manager import Application
 from manager import Message
 from manager import OnBoard
+from manager import Justification
 from rag_src.zephyr_rag import ZephyrRAG
 # intialize manager
 # manager.run()
@@ -93,6 +94,8 @@ class State(rx.State):
     # Whether the modal is open.
     modal_open: bool = False
 
+    explain_bar_open: bool = True
+
     def initialize_manager(self):
         manager.run()
 
@@ -102,6 +105,7 @@ class State(rx.State):
         self.current_chat = self.new_chat_name
         self.chats[self.new_chat_name] = []
         self.manager = self.initialize_manager()
+        self.explain_bar_open = False
 
         # Toggle the modal.
         self.modal_open = False
