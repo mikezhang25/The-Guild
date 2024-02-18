@@ -3,11 +3,22 @@ from uagents.setup import fund_agent_if_low
 
 from rag_src.zephyr_rag import ZephyrRAG
 
-API_ENDPT = "http://localhost:3000"
+API_ENDPT = "http://localhost:3001"
 company = "Sand Hill Pharmaceuticals"
 
 import requests
 import asyncio
+
+async def send_message(phone_number, message):
+    try:
+        payload = {'phoneNumber': phone_number, 'message': message}
+        response = requests.post(f"{API_ENDPT}/send-message", json=payload)
+        if response.status_code == 200:
+            print(f"Message sent successfully to {phone_number}")
+        else:
+            print(f"Failed to send message to {phone_number}: {response.json().get('error')}")
+    except Exception as e:
+        print(f"Exception occurred while sending message to {phone_number}: {str(e)}")
 
 def fetch_phone_numbers():
     try:
@@ -15,7 +26,7 @@ def fetch_phone_numbers():
         print(f"Responses: {response}")
         phone_numbers = response.json()
         print(f"Fetched phone numbers: {phone_numbers}")
-        return phone_numbers
+        return phone_numbers or []
     except Exception as e:
         print(f"Failed to fetch phone numbers: {str(e)}")
 
@@ -24,7 +35,7 @@ def fetch_messages(phone_number):
         response = requests.get(f"{API_ENDPT}/fetch-messages/{phone_number}")
         messages = response.json()
         print(f"Messages for {phone_number}: {messages}")
-        return messages
+        return messages or []
     except Exception as e:
         print(f"Failed to fetch messages for {phone_number}: {str(e)}")
 
@@ -108,7 +119,7 @@ class Client:
         @self.agent.on_message(model=Directive)
         async def directive_handler(ctx: Context, sender: str, msg: Directive):
             # TODO: call API to refresh chat history in data/[name]
-            fits_prompt = self.rag.query(f"Evaluate whether {ctx.name} satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. For all other cases, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} ").response
+            fits_prompt = self.rag.query(f"Evaluate whether {ctx.name} strictly satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. For all other cases, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because").response
             print(fits_prompt)
             if 'yes' in fits_prompt.lower().split()[0]:
                 ctx.logger.info(f"{ctx.name} matches directive {msg.prompt}")
@@ -126,6 +137,7 @@ class Client:
                 message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"\nDear {ctx.name}").response
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
+                await send_message(self.agent.storage.get("phone"), message)
             else:
                 ctx.logger.info("Did not match prompt")
             

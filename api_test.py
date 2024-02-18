@@ -15,9 +15,9 @@ sigmar = Agent(
  
 fund_agent_if_low(sigmar.wallet.address())
  
-@sigmar.on_interval(period=2.0)
+@sigmar.on_interval(period=10.0)
 async def send_message(ctx: Context):
-    await ctx.send(RECIPIENT_ADDRESS, Message(message="deez nuts"))
+    await ctx.send(RECIPIENT_ADDRESS, Message(message=input("prompt:")))
  
 @sigmar.on_message(model=Message)
 async def message_handler(ctx: Context, sender: str, msg: Message):
