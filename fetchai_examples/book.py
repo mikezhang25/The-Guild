@@ -36,3 +36,4 @@ async def handle_book_request(ctx: Context, sender: str, msg: BookTableRequest):
  
     # send the response
     await ctx.send(sender, BookTableResponse(success=success))
+
