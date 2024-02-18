@@ -72,14 +72,21 @@ class Manager:
                     chat_file.write("")
             newClient = Client(msg.phone, msg.phone, self.bureau, client_data_path)
             self.clients.append(newClient)
-            send_message(msg.number, newClient.rag.query(f"Craft a two-sentence welcome text for our new client {msg.name}. They were onboarded because of {msg.context}. \n\nWelcome, {msg.name}! "))
+            send_message(msg.number, newClient.rag.query(f"""
+                Craft a two-sentence welcome text for our new client {msg.name}. 
+                They were onboarded because of {msg.context}. \n\nWelcome, {msg.name}!
+            """))
         
         @self.agent.on_message(model=Message)
         async def message_handler(ctx: Context, sender: str, message: Message):
             print(f"Received message: {message.message}")
             # generate template
             user_prompt = message.message
-            user_template = self.rag.query(f"Generate a general customer outreach template for the following prompt from {company}. \n\n Prompt: \"\"\"{user_prompt}\"\"\"").response
+            user_template = self.rag.query(f"""
+                Generate a general customer outreach template for the following prompt from {company}.
+                
+                Prompt: \"\"\"{user_prompt}\"\"\"
+                """).response
             #user_template = "boilerplate template"
             print(f"Generated template: {user_template}")
             # send combined prompt and prompt
@@ -117,7 +124,13 @@ class Client:
         @self.agent.on_message(model=Directive)
         async def directive_handler(ctx: Context, sender: str, msg: Directive):
             # TODO: call API to refresh chat history in data/[name]
-            fits_prompt = self.rag.query(f"Evaluate whether this user strictly satisfies the prompt {msg.prompt} given their chat history. Please begin your answer with exactly a yes or no. If no, please provide 1 sentence explaining why. If yes, begin with \"yes\" and 1 sentence explaining your decision.\n \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because").response
+            fits_prompt = self.rag.query(f"""
+                Evaluate whether this user strictly satisfies the prompt {msg.prompt} given their chat history. 
+                Please begin your answer with exactly a yes or no. 
+                If no, please provide 1 sentence explaining why. 
+                If yes, begin with "yes" and 1 sentence explaining your decision.
+                \[Yes or No\], {ctx.name} [does or does not] satisfy the prompt because
+                """).response
             print(fits_prompt)
             await ctx.send(FRONT_END_ADDR, Justification(fits_prompt))
             if 'yes' in fits_prompt.lower().split()[0]:
@@ -126,7 +139,15 @@ class Client:
                 # refresh phone number cache
                 self.refresh_chat()
 
-                message = self.rag.query(f"Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. At all costs, do not mention details that were not provided verbatim in the prompt. Embody a senior customer relationship manager at {company} who is deeply devoted to its success. \n\n Prompt: \"\"\" {msg.prompt} \"\"\" Template: \"\"\" {msg.template} \"\"\"\nDear {ctx.name}").response
+                message = self.rag.query(f"""
+                    Given the following prompt, personalize the template message for {ctx.name} according to their chat history, taking care to mention conversational details and appealing to their interests. 
+                    At all costs, do not mention details that were not provided verbatim in the prompt. 
+                    Embody a senior customer relationship manager at {company} who is deeply devoted to its success. 
+                    
+                    Prompt: \"\"\" {msg.prompt} \"\"\"
+                    Template: \"\"\" {msg.template} \"\"\"
+                    Dear {ctx.name}
+                """).response
                 # TODO: send out using WhatsApp
                 ctx.logger.info(f"Personalized message: {message}")
                 await send_message(self.agent.storage.get("phone"), message)
