@@ -141,7 +141,7 @@ current_path = os.getcwd()
 base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
 class Application:
     def __init__(self):
-        self.bureau = Bureau(port=8000, endpoint=["http://0.0.0.0:8000/submit"])
+        self.bureau = Bureau(port=8001, endpoint=["http://0.0.0.0:8001/submit"])
         
         self.clients = []
         self.load_clients()

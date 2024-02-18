@@ -4,6 +4,7 @@ import json
 import openai
 import reflex as rx
 import sys
+import asyncio
 
 current_path = os.getcwd()
 base_path = current_path.split("TreeHacks2024")[0] + "TreeHacks2024"
@@ -12,9 +13,33 @@ sys.path.append(base_path)
 from manager import Application
 from rag_src.zephyr_rag import ZephyrRAG
 # intialize manager
-manager = Application()
 # manager.run()
 
+from uagents import Agent, Context, Model
+from uagents.setup import fund_agent_if_low
+ 
+class Message(Model):
+    message: str
+ 
+RECIPIENT_ADDRESS="agent1qfjcg2h5c2d2qkzksc8wntkpcyflntz0w8lsh2q6nwqpe6a2dn5ps88aqq3"
+ 
+sigmar = Agent(
+    name="sigmar",
+    port=8001,
+    seed="sigmar secret phrase",
+    endpoint=["http://0.0.0.0:8001/submit"],
+)
+ 
+fund_agent_if_low(sigmar.wallet.address())
+ 
+@sigmar.on_interval(period=2.0)
+async def send_message(ctx: Context):
+    await ctx.send(RECIPIENT_ADDRESS, Message(message="deez nuts"))
+ 
+@sigmar.on_message(model=Message)
+async def message_handler(ctx: Context, sender: str, msg: Message):
+    ctx.logger.info(f"Received message from {sender}: {msg.message}")
+ 
 
 zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
 zephyr_rag.start_rag()
@@ -140,8 +165,7 @@ class State(rx.State):
 
         # Remove the last mock answer.
         messages = messages[:-1]
-
-        manager.manager.add_prompt(prompt = messages[-1]["content"])
+        await sigmar._ctx.send(RECIPIENT_ADDRESS, Message(message = messages[-1]["content"]))
         # response = zephyr_rag.query(messages[-1]["content"])
         # Stream the results, yielding after every word.
 
@@ -157,8 +181,8 @@ class State(rx.State):
         #         self.chats[self.current_chat][-1].answer += "Generating responses..."
         #         yield
         text_responses = ["Fulfilling request..."]
+        self.chats[self.current_chat][-1].answer += "Generating responses..."
         for text in text_responses:
-            # self.chats[self.current_chat][-1].answer += text
             response_qa = QA(question="", answer=text)
             response_qa.answer_only = True
             self.chats[self.current_chat].append(response_qa)
