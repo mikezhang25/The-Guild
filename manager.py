@@ -1,5 +1,5 @@
 from uagents import Agent, Bureau, Context, Model
-from zephyr_rag import ZephyrRAG
+from rag_src.zephyr_rag import ZephyrRAG
 
 class Manager:
     def __init__(self, bureau, data_path, clients) -> None:
@@ -11,9 +11,9 @@ class Manager:
             temperature=0.75,
             context_window=1024,
             embed_model="local:BAAI/bge-small-en-v1.5",
-            data_path=data_path
+            init_data_path=data_path
             )
-        self.rag.run()
+        self.rag.start_rag()
         bureau.add(self.agent)
         self.clients = clients
     
@@ -49,9 +49,9 @@ class Client:
             temperature=0.75,
             context_window=1024,
             embed_model="local:BAAI/bge-small-en-v1.5",
-            data_path=chat_path
+            init_data_path=chat_path
             )
-        self.rag.run()
+        self.rag.start_rag()
         @self.agent.on_message(model=Message)
         async def message_handler(ctx: Context, sender: str, msg: Message):
             ctx.logger.info(f"{ctx.name} received message: {msg.message}")
