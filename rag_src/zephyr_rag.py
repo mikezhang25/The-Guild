@@ -83,20 +83,21 @@ class ZephyrRAG:
     def start_rag(self):
         self.load_model()
         if self.init_data_path is not None:
-            print("No documents to load from")
+            print("Load these documents")
             documents = self.load_data(data_to_index=self.init_data_path)
             self.create_index(documents=documents)
 
 
 # Example usage
-zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
+if __name__ == "__main__":
+    zephyr_rag = ZephyrRAG(model="zephyr-7b-beta")
 
-zephyr_rag.start_rag()
+    zephyr_rag.start_rag()
 
-response = zephyr_rag.query("what is cancer and its treatments")
-print(response)
+    response = zephyr_rag.query("what is cancer and its treatments")
+    print(response)
 
-print("After adding RAG")
-zephyr_rag.add_documents_to_index(data_to_index="./data")
-response = zephyr_rag.query("what is cancer and its treatments")
-print(response)
+    print("After adding RAG")
+    zephyr_rag.add_documents_to_index(data_to_index="./data")
+    response = zephyr_rag.query("what is cancer and its treatments")
+    print(response)
