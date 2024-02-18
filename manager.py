@@ -80,11 +80,13 @@ class Message(Model):
 if __name__ == "__main__":
     bureau = Bureau()
     clients = []
-    client_info = [
-        ("Mike", 9999999999),
-        ("Stanley", 8888888888),
-        ("Guru", 7777777777)
-    ]
+    import csv
+
+    client_info = []
+    with open("clients.csv", mode='r') as csv_file:
+        csv_reader = csv.reader(csv_file)
+        for row in csv_reader:
+            client_info.append((row[0], int(row[1])))
     
     for name, phone in client_info:
         clients.append(Client(name, phone, bureau, f"./data/clients/{name}"))
