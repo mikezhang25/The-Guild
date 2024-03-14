@@ -181,26 +181,57 @@ class State(rx.State):
         # Remove the last mock answer.
         messages = messages[:-1]
         message_content = messages[-1]["content"]
-        # reach out to a new customer if we have key word new customer
-        if "new customer" in message_content.lower():
-            import re
 
-            # Define a regular expression pattern to match exactly 10 digits
-            pattern = r'\b\d{10}\b'
+        phone_numbers_response = requests.get("http://localhost:3001/phone-numbers")
+        phone_numbers = phone_numbers_response.json()
+
+        for phone_number in phone_numbers:
+            messages_response = requests.get(f"http://localhost:3001/fetch-messages/{phone_number}")
+            messages = str(messages_response.json())
+
+            openai.api_key = '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'
+
+            # Combining the context into a single string for the model
+            prompt = f"Instruction for the small business owner: {question}\n\nConversation history:\n{messages}\n\nNext message the small business owner should send:"
+
+            response = openai.Completion.create(
+            engine="gpt-4",
+            prompt=prompt,
+            max_tokens=150,  # You can adjust the number of tokens based on your needs
+            temperature=0.7,  # Adjust for creativity. Lower is more deterministic.
+            top_p=1.0,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
+            )
+
+            # Extracting and printing the generated message
+            generated_message = response.choices[0].text.strip()
+            print(generated_message)
+
+            # Send the generated message to the phone number using the send-message endpoint
+            send_message(phone_number, generated_message)
+
+
+        # reach out to a new customer if we have key word new customer
+        # if "new customer" in message_content.lower():
+        #     import re
+
+        #     # Define a regular expression pattern to match exactly 10 digits
+        #     pattern = r'\b\d{10}\b'
             
-            # Use the re.search() function to find the pattern in the message content
-            match = re.search(pattern, message_content)
+        #     # Use the re.search() function to find the pattern in the message content
+        #     match = re.search(pattern, message_content)
             
-            phone_number = match.group()
-            await sigmar._ctx.send(RECIPIENT_ADDRESS, OnBoard(phone=phone_number, context=f"{message_content}"))
-        else:
-            await sigmar._ctx.send(RECIPIENT_ADDRESS, Message(message = message_content))
+        #     phone_number = match.group()
+        #     await sigmar._ctx.send(RECIPIENT_ADDRESS, OnBoard(phone=phone_number, context=f"{message_content}"))
+        # else:
+        #     await sigmar._ctx.send(RECIPIENT_ADDRESS, Message(message = message_content))
         # response = zephyr_rag.query(messages[-1]["content"])
         # Stream the results, yielding after every word.
 
-        import requests
+        # import requests
 
-        url = "https://www.dummy.me"
+        # url = "https://www.dummy.me"
 
         # for item in response:
         #     if item[0] == "text":
