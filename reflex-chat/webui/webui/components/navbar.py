@@ -26,7 +26,7 @@ def navbar():
                 ),
                 rx.chakra.breadcrumb(
                     rx.chakra.breadcrumb_item(
-                        rx.chakra.heading("WhatsApp Bot", size="sm"),
+                        rx.chakra.heading("The Guild", size="sm"),
                     ),
                 ),
             ),

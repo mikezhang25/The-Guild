@@ -23,9 +23,9 @@ async def send_message(phone_number, message):
 def fetch_phone_numbers():
     try:
         response = requests.get(f"{API_ENDPT}/phone-numbers")
-        print(f"Responses: {response}")
+        excluded_numbers = ["5213319410786","14129801240","918390785130","14084315248","15023880975","15103568431","15127610849","447506916750", "16502835469"]
         phone_numbers = response.json()
-        print(f"Fetched phone numbers: {phone_numbers}")
+        phone_numbers = list(filter(lambda number: number not in excluded_numbers, phone_numbers))
         return phone_numbers or []
     except Exception as e:
         print(f"Failed to fetch phone numbers: {str(e)}")
@@ -34,7 +34,6 @@ def fetch_messages(phone_number):
     try:
         response = requests.get(f"{API_ENDPT}/fetch-messages/{phone_number}")
         messages = response.json()
-        print(f"Messages for {phone_number}: {messages}")
         return messages or []
     except Exception as e:
         print(f"Failed to fetch messages for {phone_number}: {str(e)}")
@@ -151,7 +150,7 @@ class Client:
                 """).response
             print(fits_prompt)
             if 'yes' in fits_prompt.lower().split()[0]:
-                ctx.logger.info(f"{ctx.name} matches criteria {msg.prompt}")
+                ctx.logger.info(f"{ctx.name} matches criteria")
 
                 # refresh phone number cache
                 self.refresh_chat()
@@ -172,10 +171,12 @@ class Client:
                     Generate your text message response.
                 """).response
                 # TODO: send out using WhatsApp
-                ctx.logger.info(f"Personalized message: {message}")
+                ctx.logger.info(f"Personalized message:\n{message}")
+                ctx.logger.info("\n")
+
                 await send_message(self.agent.storage.get("phone"), message)
             else:
-                ctx.logger.info("Customer did not meet criteria")
+                ctx.logger.info("Customer did not meet criteria\n")
             
     def refresh_chat(self):
         phone_number = self.agent.storage.get("phone")
@@ -184,7 +185,6 @@ class Client:
         with open(chat_path, "w") as chat_file:
             for message in new_messages:
                 chat_file.write(f"{message}\n")
-        print("Refreshed chat history")
 
 class Directive(Model):
     template: str
@@ -230,7 +230,6 @@ class Application:
 if __name__ == "__main__":
     app = Application()
     app.run()
-    print("bruh")
     app.manager.add_prompt("Respectfully, please work. Otherwise I will kill you.")
 
     #manager.send_directive("I want to launch a new line of shampoo, assess interest amongst teenagers.")
